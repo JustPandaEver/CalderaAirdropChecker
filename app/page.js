@@ -21,29 +21,32 @@ export default function Home() {
     }
 
     try {
-      const results = [];
+      setProgress({ current: 0, total: addresses.length });
       
-      // Process each address
-      for (let i = 0; i < addresses.length; i++) {
-        const addr = addresses[i];
-        setProgress({ current: i + 1, total: addresses.length });
-        
-        try {
-          const response = await fetch('/api/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ address: addr }),
-          });
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addresses }),
+      });
 
-          const data = await response.json();
-          results.push(...data);
-        } catch (error) {
-          results.push({ result: { data: { json: { address: addr, eligibilityData: {} } } } });
-        }
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
       }
+
+      const batchResults = await response.json();
+      
+      setProgress({ current: addresses.length, total: addresses.length });
+      
+      const results = [];
+      batchResults.forEach(item => {
+        if (item.success && Array.isArray(item.data)) {
+          results.push(...item.data);
+        }
+      });
       
       setResult(results);
     } catch (error) {
+      console.error('Error fetching data:', error);
       setResult([{ result: { data: { json: { address: 'Error', eligibilityData: {} } } } }]);
     }
 
@@ -60,7 +63,6 @@ export default function Home() {
     });
     const sortedKeys = Array.from(allKeys);
 
-    // Group data by address
     const addressData = new Map();
     result.forEach(item => {
       const json = item.result?.data?.json;
@@ -68,7 +70,6 @@ export default function Home() {
         const eligibilities = json.eligibilityData || {};
         
         if (addressData.has(json.address)) {
-          // Merge eligibilities for same address
           const existing = addressData.get(json.address);
           Object.keys(eligibilities).forEach(key => {
             existing[key] = (existing[key] || 0) + eligibilities[key];
@@ -79,7 +80,6 @@ export default function Home() {
       }
     });
 
-    // Create CSV header
     const headers = ['Address', ...sortedKeys, 'Total Allocation'];
     const csvContent = [
       headers.join(','),
@@ -95,7 +95,6 @@ export default function Home() {
       })
     ].join('\n');
 
-    // Download CSV file
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -117,7 +116,6 @@ export default function Home() {
     });
     const sortedKeys = Array.from(allKeys);
 
-    // Calculate summary statistics
     const uniqueAddresses = new Set();
     const addressAllocations = new Map();
     
@@ -143,7 +141,6 @@ export default function Home() {
 
     return (
       <div className="mt-8 w-full overflow-x-auto">
-        {/* Summary Section */}
         <div className="modern-summary">
           <h3 className="modern-summary-title">Summary Statistics</h3>
           <div className="modern-summary-grid">
@@ -225,7 +222,7 @@ export default function Home() {
         <h1 className="modern-title">Caldera Airdrop Checker</h1>
 
         <textarea
-          placeholder="Input addresses........"
+          placeholder="Input addresses (one per line)&#10;Example:&#10;0x1234...&#10;0x5678...&#10;0x9abc..."
           className="modern-textarea w-full mb-6 resize-none"
           rows={6}
           value={address}
