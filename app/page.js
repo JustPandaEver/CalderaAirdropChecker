@@ -23,29 +23,54 @@ export default function Home() {
     try {
       setProgress({ current: 0, total: addresses.length });
       
-      console.log('Sending addresses:', addresses);
-      
-      const response = await fetch('/api/proxy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ addresses }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch data');
-      }
-
-      const batchResults = await response.json();
-      
-      setProgress({ current: addresses.length, total: addresses.length });
-      
       const results = [];
-      batchResults.forEach(item => {
-        if (item.success && Array.isArray(item.data)) {
-          results.push(...item.data);
+      
+      for (let i = 0; i < addresses.length; i++) {
+        const addr = addresses[i];
+        setProgress({ current: i + 1, total: addresses.length });
+        
+        try {
+          const inputObject = {
+            "0": { "json": { "address": addr } },
+            "1": { "json": { "address": addr } }
+          };
+
+          const encodedInput = encodeURIComponent(JSON.stringify(inputObject));
+          const url = `/api/caldera/trpc/claims.getClaim,eligibility.getEthAddressEligibility?batch=1&input=${encodedInput}`;
+
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            console.error(`HTTP error for ${addr}: ${response.status}`);
+            results.push({ result: { data: { json: { address: addr, eligibilityData: {} } } } });
+            continue;
+          }
+
+          let data;
+          try {
+            const responseText = await response.text();
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error(`JSON parse error for ${addr}:`, parseError);
+            results.push({ result: { data: { json: { address: addr, eligibilityData: {} } } } });
+            continue;
+          }
+
+          if (Array.isArray(data)) {
+            results.push(...data);
+          } else {
+            results.push(data);
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${addr}:`, error);
+          results.push({ result: { data: { json: { address: addr, eligibilityData: {} } } } });
         }
-      });
+      }
       
       setResult(results);
     } catch (error) {

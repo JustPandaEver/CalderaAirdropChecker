@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-     reactStrictMode: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api/caldera/:path*',
+        destination: 'https://claim.caldera.foundation/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
