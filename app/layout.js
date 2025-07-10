@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Caldera Airdrop Checker",
-  description: "Checker Alocation for Calder User",
+  title: "Melon Yapper Caldera Checker",
+  description: "Checker for Caldera Airdrop",
 };
 
 export default function RootLayout({ children }) {
