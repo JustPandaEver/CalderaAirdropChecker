@@ -23,6 +23,8 @@ export default function Home() {
     try {
       setProgress({ current: 0, total: addresses.length });
       
+      console.log('Sending addresses:', addresses);
+      
       const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,7 +32,8 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch data');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch data');
       }
 
       const batchResults = await response.json();

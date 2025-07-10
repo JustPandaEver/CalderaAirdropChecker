@@ -1,9 +1,30 @@
 export async function POST(req) {
   try {
-    const { addresses } = await req.json();
+    const body = await req.json();
+    console.log('Received body:', body);
+    
+    const { addresses } = body;
 
-    if (!Array.isArray(addresses) || addresses.length === 0) {
-      return new Response(JSON.stringify({ error: 'Invalid addresses array' }), {
+    if (!addresses) {
+      return new Response(JSON.stringify({ error: 'No addresses provided' }), {
+        status: 400,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+    }
+
+    if (!Array.isArray(addresses)) {
+      return new Response(JSON.stringify({ error: 'Addresses must be an array' }), {
+        status: 400,
+        headers: {
+          'content-type': 'application/json',
+        },
+      });
+    }
+
+    if (addresses.length === 0) {
+      return new Response(JSON.stringify({ error: 'Addresses array is empty' }), {
         status: 400,
         headers: {
           'content-type': 'application/json',
@@ -64,7 +85,8 @@ export async function POST(req) {
       },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch data from server' }), {
+    console.error('API Error:', err);
+    return new Response(JSON.stringify({ error: 'Failed to fetch data from server', details: err.message }), {
       status: 500,
       headers: {
         'content-type': 'application/json',
